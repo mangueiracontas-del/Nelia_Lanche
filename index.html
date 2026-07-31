@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - OlaClick Replica</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.x/css/materialdesignicons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="10"/><text x="12" y="16" text-anchor="middle" fill="#006FFF" font-size="12" font-weight="bold">O</text></svg>
+      OlaClick
+    </div>
+    <button class="upgrade-btn">
+      <span class="mdi mdi-lightning-bolt-outline"></span>
+      Atualize seu Plano
+    </button>
+    <div class="header-spacer"></div>
+    <button class="header-icon-btn" data-tooltip="Notificações">
+      <span class="mdi mdi-bell-outline"></span>
+      <span class="badge" style="display:none">0</span>
+    </button>
+    <div class="header-divider"></div>
+    <button class="header-icon-btn" data-tooltip="Mensagens">
+      <span class="mdi mdi-email-outline"></span>
+      <span class="badge">5</span>
+    </button>
+    <div class="header-divider"></div>
+    <button class="header-icon-btn" data-tooltip="Suporte">
+      <span class="mdi mdi-headset"></span>
+    </button>
+    <div class="header-divider"></div>
+    <div class="user-menu">
+      <div class="user-avatar">LM</div>
+      <span class="user-name hide-on-small">Lanches e Massas</span>
+      <span class="mdi mdi-chevron-down"></span>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <a href="#" class="nav-item active">
+      <span class="nav-icon mdi mdi-clipboard-check-outline"></span>
+      <span class="nav-text">Pedidos PDV</span>
+    </a>
+    <div class="sidebar-divider"></div>
+    <a href="#" class="nav-item">
+      <span class="nav-icon mdi mdi-cash-multiple"></span>
+      <span class="nav-text">Vendas</span>
+      <span class="mdi mdi-chevron-down" style="margin-left:auto;font-size:14px;opacity:0.7"></span>
+    </a>
+    <a href="#" class="nav-item">
+      <span class="nav-icon mdi mdi-silverware-fork-knife"></span>
+      <span class="nav-text">Cardápio</span>
+      <span class="mdi mdi-chevron-down" style="margin-left:auto;font-size:14px;opacity:0.7"></span>
+    </a>
+    <a href="#" class="nav-item">
+      <span class="nav-icon mdi mdi-chef-hat"></span>
+      <span class="nav-text">Cozinha</span>
+    </a>
+    <div class="sidebar-divider"></div>
+    <a href="#" class="nav-item">
+      <span class="nav-icon mdi mdi-package-variant-closed"></span>
+      <span class="nav-text">Inventário</span>
+      <div style="position:relative;margin-left:auto">
+        <span style="color:#FF9F00;font-size:8px;position:absolute;right:-2px;top:-2px">●</span>
+        <span style="color:#F44336;font-size:8px">●</span>
+      </div>
+    </a>
+    <div class="sidebar-divider"></div>
+    <a href="#" class="nav-item">
+      <span class="nav-icon mdi mdi-robot-excited"></span>
+      <span class="nav-text">Chatbot WhatsApp</span>
+    </a>
+    <div class="sidebar-divider"></div>
+    <a href="#" class="nav-item">
+      <span class="nav-icon mdi mdi-account-group"></span>
+      <span class="nav-text">Clientes</span>
+    </a>
+    <a href="#" class="nav-item">
+      <span class="nav-icon mdi mdi-bullhorn"></span>
+      <span class="nav-text">Marketing</span>
+      <span class="mdi mdi-chevron-down" style="margin-left:auto;font-size:14px;opacity:0.7"></span>
+    </a>
+    <div class="sidebar-divider"></div>
+    <a href="#" class="nav-item">
+      <span class="nav-icon mdi mdi-cog"></span>
+      <span class="nav-text">Configurações</span>
+      <span class="mdi mdi-chevron-down" style="margin-left:auto;font-size:14px;opacity:0.7"></span>
+    </a>
+    <a href="#" class="nav-item">
+      <span class="nav-icon mdi mdi-puzzle"></span>
+      <span class="nav-text">Integrações</span>
+      <span class="mdi mdi-chevron-down" style="margin-left:auto;font-size:14px;opacity:0.7"></span>
+    </a>
+
+    <div class="sidebar-bottom">
+      <button class="sidebar-btn" data-tooltip="Pré-visualizar">
+        <span class="mdi mdi-cellphone"></span>
+      </button>
+      <button class="sidebar-btn" data-tooltip="QR Code">
+        <span class="mdi mdi-qrcode"></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Cashier Banner -->
+    <div class="cashier-banner animate-in">
+      <div class="cashier-banner__icon">🧾</div>
+      <div class="cashier-banner__content">
+        <div class="cashier-banner__title">Seu caixa está fechado e você já começou seu turno</div>
+        <div class="cashier-banner__description">
+          Para começar a registrar pedidos e ter um controle exato de suas vendas de hoje, você precisa abrir seu caixa.
+          <button class="cashier-banner__link">Desativar aviso automático</button>
+        </div>
+      </div>
+      <button class="cashier-banner__btn">Abrir caixa</button>
+      <button class="cashier-banner__close">
+        <span class="mdi mdi-close"></span>
+      </button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-container animate-in">
+      <button class="orders-tab active">
+        <span class="drag-handle mdi mdi-drag"></span>
+        <span class="tab-icon mdi mdi-storefront"></span>
+        <span class="hide-on-small">Balcão</span>
+        <span class="tab-badge">2</span>
+      </button>
+      <button class="orders-tab">
+        <span class="drag-handle mdi mdi-drag"></span>
+        <span class="tab-icon mdi mdi-moped"></span>
+        <span class="hide-on-small">Delivery</span>
+        <span class="tab-badge dark">0</span>
+      </button>
+      <button class="orders-tab">
+        <span class="drag-handle mdi mdi-drag"></span>
+        <span class="tab-icon mdi mdi-table-furniture"></span>
+        <span class="hide-on-small">Mesas</span>
+        <span class="tab-badge dark">0</span>
+      </button>
+      <button class="tab-add">
+        <span class="mdi mdi-plus"></span>
+      </button>
+
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        <button class="toolbar-btn danger" data-tooltip="Caixa fechado">
+          <span class="mdi mdi-point-of-sale"></span>
+          <span class="status-dot"></span>
+        </button>
+        <button class="toolbar-btn" data-tooltip="Atualizar">
+          <span class="mdi mdi-refresh"></span>
+        </button>
+        <button class="toolbar-btn" data-tooltip="Buscar">
+          <span class="mdi mdi-magnify"></span>
+        </button>
+        <button class="toolbar-btn" data-tooltip="Pausar">
+          <span class="mdi mdi-pause"></span>
+        </button>
+        <button class="new-order-btn">
+          <span class="mdi mdi-plus"></span>
+          Novo pedido
+          <span class="mdi mdi-menu-down"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-bar animate-in">
+      <button class="toolbar-btn" style="width:32px;height:32px" data-tooltip="Filtros">
+        <span class="mdi mdi-filter-variant"></span>
+      </button>
+      <div class="filter-divider"></div>
+      <button class="filter-btn active">
+        <span class="mdi mdi-check-circle" style="color:var(--primary)"></span>
+        Tudo
+      </button>
+      <button class="filter-btn">
+        Pendente <span style="color:var(--text-light)">0</span>
+      </button>
+      <button class="filter-btn">
+        Em curso <span style="color:var(--text-light)">2</span>
+      </button>
+      <button class="filter-btn">PDV / WEB</button>
+      <button class="filter-btn">Aplicativos</button>
+      <div class="total-display">
+        Total: <strong>R$ 57,00</strong>
+        <button class="toolbar-btn" style="width:28px;height:28px;margin-left:4px" data-tooltip="Ver detalhes">
+          <span class="mdi mdi-eye-outline" style="font-size:16px"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="data-table-container animate-in">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="sortable" style="width:180px">Data</th>
+            <th class="sortable" style="width:180px">Estado</th>
+            <th class="sortable" style="width:180px">Total</th>
+            <th>Cliente</th>
+            <th style="width:400px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Order 1 -->
+          <tr>
+            <td>
+              <div class="order-id">#1</div>
+              <div class="order-type">
+                <span class="mdi mdi-storefront" style="font-size:14px"></span>
+                No local
+              </div>
+              <div class="order-timer">
+                <span class="mdi mdi-clock-alert-outline" style="font-size:14px"></span>
+                60:00 min
+              </div>
+              <div class="order-date">
+                <span class="mdi mdi-calendar" style="font-size:14px"></span>
+                04/07/26 19:06
+              </div>
+            </td>
+            <td>
+              <div class="chip-status delivered">Entregue</div>
+              <div class="chip-source">PDV</div>
+              <div class="order-owner">
+                <span class="mdi mdi-account" style="font-size:14px;color:#28B84F"></span>
+                Nelia Paula
+              </div>
+            </td>
+            <td>
+              <div style="font-weight:600;font-size:15px">R$ 23,00</div>
+              <div class="chip-payment">Não pago</div>
+            </td>
+            <td>
+              <div class="client-name">Sandra Pyetro</div>
+              <div class="client-phone">
+                <span class="mdi mdi-whatsapp" style="font-size:14px"></span>
+                +55 9491785734
+                <span class="mdi mdi-menu-down"></span>
+              </div>
+            </td>
+            <td>
+              <div class="actions-cell">
+                <button class="action-btn icon-only" data-tooltip="Imprimir">
+                  <span class="mdi mdi-printer-outline"></span>
+                </button>
+                <button class="action-btn" data-tooltip="Status">
+                  <span class="mdi mdi-clock-outline"></span>
+                  Status
+                </button>
+                <button class="action-btn primary" data-tooltip="Pagar">
+                  <span class="mdi mdi-currency-usd"></span>
+                  Pagar
+                </button>
+                <button class="action-btn success" data-tooltip="Finalizar">
+                  <span class="mdi mdi-check"></span>
+                  Finalizar
+                </button>
+                <button class="action-btn icon-only" data-tooltip="Mais">
+                  <span class="mdi mdi-dots-vertical"></span>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <!-- Order 2 -->
+          <tr>
+            <td>
+              <div class="order-id">#6</div>
+              <div class="order-type">
+                <span class="mdi mdi-package-variant" style="font-size:14px"></span>
+                Retirada
+              </div>
+              <div class="order-timer">
+                <span class="mdi mdi-clock-alert-outline" style="font-size:14px"></span>
+                60:00 min
+              </div>
+              <div class="order-date">
+                <span class="mdi mdi-calendar" style="font-size:14px"></span>
+                14/11/25 22:22
+              </div>
+            </td>
+            <td>
+              <div class="chip-status delivered">Entregue</div>
+              <div class="chip-source">PDV</div>
+              <div class="order-owner">
+                <span class="mdi mdi-account" style="font-size:14px;color:#28B84F"></span>
+                Nelia Paula
+              </div>
+            </td>
+            <td>
+              <div style="font-weight:600;font-size:15px">R$ 34,00</div>
+              <div class="chip-payment">Não pago</div>
+            </td>
+            <td>
+              <div class="client-name">Kelly Palmeira</div>
+              <div class="client-phone">
+                <span class="mdi mdi-whatsapp" style="font-size:14px"></span>
+                +55 94992049598
+                <span class="mdi mdi-menu-down"></span>
+              </div>
+            </td>
+            <td>
+              <div class="actions-cell">
+                <button class="action-btn icon-only" data-tooltip="Imprimir">
+                  <span class="mdi mdi-printer-outline"></span>
+                </button>
+                <button class="action-btn" data-tooltip="Status">
+                  <span class="mdi mdi-clock-outline"></span>
+                  Status
+                </button>
+                <button class="action-btn primary" data-tooltip="Pagar">
+                  <span class="mdi mdi-currency-usd"></span>
+                  Pagar
+                </button>
+                <button class="action-btn success" data-tooltip="Finalizar">
+                  <span class="mdi mdi-check"></span>
+                  Finalizar
+                </button>
+                <button class="action-btn icon-only" data-tooltip="Mais">
+                  <span class="mdi mdi-dots-vertical"></span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Footer -->
+      <div class="table-footer">
+        <div class="items-per-page">
+          <span>Items per page:</span>
+          <select>
+            <option>10</option>
+            <option>25</option>
+            <option selected>50</option>
+            <option>100</option>
+          </select>
+        </div>
+        <div>1-2 of 2</div>
+        <div class="pagination">
+          <button class="page-btn" disabled>
+            <span class="mdi mdi-page-first"></span>
+          </button>
+          <button class="page-btn" disabled>
+            <span class="mdi mdi-chevron-left"></span>
+          </button>
+          <button class="page-btn" disabled>
+            <span class="mdi mdi-chevron-right"></span>
+          </button>
+          <button class="page-btn" disabled>
+            <span class="mdi mdi-page-last"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="finish-all">
+      <button class="finish-all-btn">
+        <span class="mdi mdi-calendar-check"></span>
+        Finalizar tudo
+      </button>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
