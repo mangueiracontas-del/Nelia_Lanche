@@ -1,72 +1,89 @@
 /* ============================================================
-   Cardápio Digital - Produtos e Combos
-   Lógica principal (app.js)
+   PDV Pedidos — Lógica Principal (app.js)
    ============================================================ */
 
 const app = {
-  products: [],
+  pedidos: [],
+  produtos: [],
   combos: [],
-  currentTab: 'products',
-  editingId: null,
+  clientes: [],
+  enderecos: [],
+  currentFilter: 'tudo',
   searchQuery: '',
-  comboSelectedProducts: [],
+  cart: [],
+  editingId: null,
 
-  init() {
-    this.loadData();
-    if (this.products.length === 0) this.seedData();
+  async init() {
+    await openIDB();
+    await this.carregarDados();
+    if (this.pedidos.length === 0) this.seedData();
     this.render();
   },
 
-  loadData() {
+  async carregarDados() {
     try {
-      const p = localStorage.getItem('cardapio_products');
-      const c = localStorage.getItem('cardapio_combos');
-      if (p) this.products = JSON.parse(p);
-      if (c) this.combos = JSON.parse(c);
-    } catch(e) { console.error(e); }
-  },
-
-  saveData() {
-    localStorage.setItem('cardapio_products', JSON.stringify(this.products));
-    localStorage.setItem('cardapio_combos', JSON.stringify(this.combos));
+      this.produtos = await dbCarregarProdutos();
+      this.combos = await dbCarregarCombos();
+      this.clientes = await dbCarregarClientes();
+      this.enderecos = await dbCarregarEnderecos();
+      this.pedidos = await dbCarregarPedidos();
+    } catch (e) {
+      console.warn('Erro ao carregar do Supabase, usando seed:', e);
+      this.seedData();
+    }
   },
 
   seedData() {
-    this.products = [
-      { id: 1, name: 'Batatinha frita', desc: 'Porção de batatas fritas crocantes', price: 20.00, visible: true, image: 'https://images.unsplash.com/photo-1630384060421-cb20d0e0649d?w=100&h=100&fit=crop' },
-      { id: 2, name: 'Batata especial', desc: 'Batata com cheddar e bacon', price: 40.00, visible: false, image: '' },
-      { id: 3, name: 'Hot-dog Gourmet', desc: 'Salsicha artesanal com molhos especiais', price: 15.00, visible: false, image: '' },
-      { id: 4, name: 'Hot dog Tradicional', desc: 'O clássico que todo mundo ama', price: 15.00, visible: true, image: '' },
-      { id: 5, name: 'Hot dog Strogonoff', desc: 'Hot dog com strogonoff de carne', price: 15.00, visible: false, image: '' },
-      { id: 6, name: 'Artesanal', desc: 'Hambúrguer artesanal 180g', price: 20.00, visible: false, image: '' },
-      { id: 7, name: 'Hambúrguer Duplo', desc: 'Dois hambúrgueres artesanais', price: 33.00, visible: true, image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=100&h=100&fit=crop' },
-      { id: 8, name: 'X-tudo', desc: 'Pão bola, Carne, Queijo, Presunto, Salsicha, Ovo, Calabresa, Bacon, Cebola, Tomate e Alface', price: 23.00, visible: true, image: 'https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?w=100&h=100&fit=crop' },
+    this.produtos = [
+      { id: 1, nome: 'Batatinha frita', preco: 20.00, visivel: true },
+      { id: 2, nome: 'Batata especial', preco: 40.00, visivel: false },
+      { id: 3, nome: 'Hot-dog Gourmet', preco: 15.00, visivel: false },
+      { id: 4, nome: 'Hot dog Tradicional', preco: 15.00, visivel: true },
+      { id: 5, nome: 'Hot dog Strogonoff', preco: 15.00, visivel: false },
+      { id: 6, nome: 'Artesanal', preco: 20.00, visivel: false },
+      { id: 7, nome: 'Hambúrguer Duplo', preco: 33.00, visivel: true },
+      { id: 8, nome: 'X-tudo', preco: 23.00, visivel: true },
+      { id: 9, nome: 'Refrigerante Lata', preco: 6.00, visivel: true },
+      { id: 10, nome: 'Suco Natural', preco: 10.00, visivel: true },
     ];
     this.combos = [
-      { id: 1, name: 'Combo Família', desc: '2 hambúrgueres + batata grande + 2 refrigerantes', price: 65.00, visible: true, productIds: [7, 1], image: '' },
+      { id: 1, nome: 'Combo Família', preco: 65.00, visivel: true, productIds: [7,1,9] },
+      { id: 2, nome: 'Combo Individual', preco: 35.00, visivel: true, productIds: [6,1,9] },
     ];
-    this.saveData();
+    this.clientes = [
+      { id: 1, nome: 'Luana', telefone: '(55) 94984-131252' },
+      { id: 2, nome: 'Alessandra', telefone: '(55) 94988-025774' },
+      { id: 3, nome: 'Ana Claudia', telefone: '(55) 27992-746007' },
+      { id: 4, nome: 'Sandra Pyetro', telefone: '(55) 94917-85734' },
+    ];
+    this.enderecos = [
+      { id: 1, rua: 'Rua Jari', numero: '62', bairro: 'Núcleo', cidade: 'Carajás' },
+      { id: 2, rua: 'Guama', numero: '#99', bairro: 'Centro', cidade: 'Carajás' },
+      { id: 3, rua: 'Rua Araguaia', numero: '54', bairro: 'Núcleo Urbano de Carajás', cidade: 'Parauapebas' },
+    ];
+    // Seed de itens de pedido para demonstração
+    this.itensPedido = [
+      { id: 1, pedido_id: 1, tipo_item: 'combo', combo_id: 1, produto_id: null, quantidade: 1, preco_unitario: 65.00, subtotal: 65.00 },
+      { id: 2, pedido_id: 1, tipo_item: 'produto', produto_id: 9, combo_id: null, quantidade: 1, preco_unitario: 6.00, subtotal: 6.00 },
+      { id: 3, pedido_id: 2, tipo_item: 'produto', produto_id: 8, combo_id: null, quantidade: 1, preco_unitario: 23.00, subtotal: 23.00 },
+      { id: 4, pedido_id: 2, tipo_item: 'produto', produto_id: 1, combo_id: null, quantidade: 1, preco_unitario: 20.00, subtotal: 20.00 },
+      { id: 5, pedido_id: 3, tipo_item: 'combo', combo_id: 2, produto_id: null, quantidade: 1, preco_unitario: 35.00, subtotal: 35.00 },
+      { id: 6, pedido_id: 4, tipo_item: 'produto', produto_id: 4, combo_id: null, quantidade: 1, preco_unitario: 15.00, subtotal: 15.00 },
+      { id: 7, pedido_id: 5, tipo_item: 'produto', produto_id: 7, combo_id: null, quantidade: 1, preco_unitario: 33.00, subtotal: 33.00 },
+    ];
+    this.pedidos = [
+      { id: 1, numero_pedido: '#1', cliente_id: 1, endereco_id: 1, tipo: 'delivery', status: 'em_preparacao', total: 67.00, forma_pagamento: 'cartao_credito', pago: false, observacao: 'Sem cebola no X-tudo', data_pedido: new Date(Date.now() - 13*60000).toISOString() },
+      { id: 2, numero_pedido: '#2', cliente_id: 2, endereco_id: 2, tipo: 'delivery', status: 'em_preparacao', total: 42.00, forma_pagamento: 'pix', pago: false, observacao: '', data_pedido: new Date(Date.now() - 36*60000).toISOString() },
+      { id: 3, numero_pedido: '#7', cliente_id: 3, endereco_id: 3, tipo: 'delivery', status: 'em_preparacao', total: 32.00, forma_pagamento: 'pix', pago: false, observacao: 'Troco para 50', data_pedido: new Date(Date.now() - 60*60000).toISOString() },
+      { id: 4, numero_pedido: '#3', cliente_id: 4, endereco_id: null, tipo: 'mesa', status: 'em_preparacao', total: 14.00, forma_pagamento: 'dinheiro', pago: false, observacao: 'Mesa 5', entregador: 'Nelia Paula', data_pedido: new Date(Date.now() - 60*60000).toISOString() },
+      { id: 5, numero_pedido: '#4', cliente_id: 4, endereco_id: null, tipo: 'mesa', status: 'entregue', total: 22.00, forma_pagamento: 'dinheiro', pago: true, observacao: 'Mesa 3', entregador: 'Nelia Paula', data_pedido: new Date(Date.now() - 65*60000).toISOString() },
+    ];
   },
 
-  getNextId(list) {
-    if (list.length === 0) return 1;
-    return Math.max(...list.map(x => x.id)) + 1;
-  },
-
-  setTab(tab) {
-    this.currentTab = tab;
-    this.searchQuery = '';
-    document.getElementById('searchInput').value = '';
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.getElementById('tab-' + tab).classList.add('active');
-    const btnAdd = document.getElementById('btn-add');
-    if (tab === 'combos') {
-      btnAdd.innerHTML = '<span>+</span> Novo Combo';
-      document.getElementById('content-title').textContent = 'Combos';
-    } else {
-      btnAdd.innerHTML = '<span>+</span> Novo Produto';
-      document.getElementById('content-title').textContent = 'Produtos';
-    }
+  setFilter(f) {
+    this.currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('filter-' + f).classList.add('active');
     this.render();
   },
 
@@ -76,253 +93,538 @@ const app = {
   },
 
   getFiltered() {
-    const list = this.currentTab === 'products' ? this.products : this.combos;
-    if (!this.searchQuery) return list;
-    return list.filter(item =>
-      item.name.toLowerCase().includes(this.searchQuery) ||
-      (item.desc && item.desc.toLowerCase().includes(this.searchQuery))
-    );
+    let list = this.pedidos;
+    if (this.currentFilter !== 'tudo') {
+      list = list.filter(p => p.status === this.currentFilter);
+    }
+    if (this.searchQuery) {
+      list = list.filter(p => {
+        const c = this.clientes.find(c => c.id === p.cliente_id);
+        const e = this.enderecos.find(e => e.id === p.endereco_id);
+        return (p.numero_pedido && p.numero_pedido.toLowerCase().includes(this.searchQuery)) ||
+               (c && c.nome.toLowerCase().includes(this.searchQuery)) ||
+               (c && c.telefone.toLowerCase().includes(this.searchQuery)) ||
+               (e && e.rua.toLowerCase().includes(this.searchQuery));
+      });
+    }
+    return list.sort((a,b) => new Date(b.data_pedido) - new Date(a.data_pedido));
+  },
+
+  updateStats() {
+    const hoje = new Date().toDateString();
+    const pedidosHoje = this.pedidos.filter(p => new Date(p.data_pedido).toDateString() === hoje && p.status !== 'cancelado');
+    const totalDia = pedidosHoje.reduce((s,p) => s + p.total, 0);
+    const emPrep = this.pedidos.filter(p => p.status === 'em_preparacao').length;
+    const entregues = this.pedidos.filter(p => p.status === 'entregue').length;
+
+    document.getElementById('stat-total-dia').textContent = 'R$ ' + totalDia.toFixed(2).replace('.', ',');
+    document.getElementById('stat-pedidos-hoje').textContent = pedidosHoje.length;
+    document.getElementById('stat-em-preparacao').textContent = emPrep;
+    document.getElementById('stat-entregues').textContent = entregues;
+
+    document.getElementById('badge-tudo').textContent = this.pedidos.filter(p => p.status !== 'cancelado').length;
+    document.getElementById('badge-pendente').textContent = this.pedidos.filter(p => p.status === 'pendente').length;
+    document.getElementById('badge-em_preparacao').textContent = emPrep;
+    document.getElementById('badge-pronto').textContent = this.pedidos.filter(p => p.status === 'pronto').length;
+    document.getElementById('badge-entregue').textContent = entregues;
   },
 
   render() {
-    document.getElementById('badge-products').textContent = this.products.length;
-    document.getElementById('badge-combos').textContent = this.combos.length;
-
+    this.updateStats();
     const list = this.getFiltered();
-    document.getElementById('content-count').textContent = `${list.length} item${list.length !== 1 ? 's' : ''} cadastrado${list.length !== 1 ? 's' : ''}`;
+    const container = document.getElementById('ordersList');
 
-    const container = document.getElementById('productList');
     if (list.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">${this.currentTab === 'products' ? '🍽️' : '🎁'}</div>
-          <div class="empty-state-title">Nenhum ${this.currentTab === 'products' ? 'produto' : 'combo'} encontrado</div>
-          <div class="empty-state-desc">Clique em "Novo" para começar a cadastrar.</div>
-        </div>`;
+      container.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--gray-400)"><div style="font-size:2.5rem;margin-bottom:0.5rem">📋</div><div style="font-weight:600;color:var(--gray-600)">Nenhum pedido encontrado</div></div>';
       return;
     }
 
-    container.innerHTML = list.map(item => {
-      const isCombo = this.currentTab === 'combos';
-      const img = item.image
-        ? `<img src="${item.image}" class="product-img" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
-        : '';
-      const placeholder = `<div class="product-img-placeholder">${isCombo ? '🎁' : '🍔'}</div>`;
-      const comboInfo = isCombo && item.productIds
-        ? `<span style="color:var(--primary);font-weight:600;">• ${item.productIds.length} produto${item.productIds.length !== 1 ? 's' : ''}</span>`
-        : '';
+    container.innerHTML = list.map(p => {
+      const cliente = this.clientes.find(c => c.id === p.cliente_id);
+      const endereco = this.enderecos.find(e => e.id === p.endereco_id);
+      const tempo = this.calcularTempo(p.data_pedido);
+      const statusClass = 'status-' + p.status;
+      const statusLabel = { pendente: 'Pendente', em_preparacao: 'Em preparação', pronto: 'Pronto', entregue: 'Entregue', cancelado: 'Cancelado' }[p.status] || p.status;
+      const tipoIcon = p.tipo === 'delivery' ? '🛵' : p.tipo === 'mesa' ? '🪑' : p.tipo === 'balcao' ? '🏪' : '📦';
+      const pagLabel = p.pago ? 'Pago' : 'Não pago';
+      const pagClass = p.pago ? 'payment-pago' : 'payment-pendente';
 
       return `
-        <div class="product-item">
-          ${img}${!item.image ? placeholder : placeholder.replace('style="display:flex"', 'style="display:none"')}
-          <div class="product-info">
-            <div class="product-name">${this.escapeHtml(item.name)} ${item.visible ? '' : '<span style="color:var(--gray-300);font-size:0.75rem;font-weight:500;">(oculto)</span>'}</div>
-            <div class="product-desc">${this.escapeHtml(item.desc || '')} ${comboInfo}</div>
+        <div class="order-row">
+          <div>
+            <div class="order-id">${tipoIcon} ${p.numero_pedido}</div>
+            <div class="order-time ${tempo.includes('60') ? 'late' : ''}">⏱ ${tempo}</div>
+            <div class="order-time">📅 ${new Date(p.data_pedido).toLocaleDateString('pt-BR')}</div>
           </div>
-          <div class="product-price">R$ ${item.price.toFixed(2).replace('.', ',')}</div>
-          <div class="product-actions">
-            <button class="visibility-toggle ${item.visible ? 'visible' : 'hidden'}" onclick="app.toggleVisibility(${item.id})" title="${item.visible ? 'Ocultar' : 'Mostrar'}">
-              ${item.visible
-                ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>'
-                : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7c.78 0 1.53-.09 2.24-.26"/><path d="M2 2l20 20"/></svg>'}
-            </button>
-            <div style="position:relative;">
-              <button class="menu-btn" onclick="app.toggleDropdown(this, ${item.id})">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-              </button>
-              <div class="dropdown-menu" id="dropdown-${item.id}">
-                <div class="dropdown-item" onclick="app.edit(${item.id})">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-                  Editar
-                </div>
-                <div class="dropdown-item delete" onclick="app.delete(${item.id})">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                  Excluir
-                </div>
-              </div>
-            </div>
+          <div>
+            <span class="order-status ${statusClass}">${statusLabel}</span>
+            <div style="margin-top:0.25rem;font-size:0.6875rem;color:var(--gray-400)">${p.tipo.toUpperCase()}</div>
+          </div>
+          <div>
+            <div class="order-total">R$ ${p.total.toFixed(2).replace('.', ',')}</div>
+            <span class="order-payment ${pagClass}">${pagLabel}</span>
+            ${p.forma_pagamento ? `<div style="font-size:0.6875rem;color:var(--gray-400);margin-top:0.125rem">${this.fmtPagamento(p.forma_pagamento)}</div>` : ''}
+          </div>
+          <div>
+            <div class="order-client">👤 ${cliente ? cliente.nome : 'Cliente não identificado'}</div>
+            ${cliente ? `<div class="order-phone">📞 ${cliente.telefone}</div>` : ''}
+          </div>
+          <div>
+            ${endereco
+              ? `<div class="order-address">📍 ${endereco.rua}, ${endereco.numero} - ${endereco.bairro}, ${endereco.cidade}</div>`
+              : `<div class="order-address">📍 No local / Retirada</div>`}
+            ${p.observacao ? `<div style="font-size:0.6875rem;color:var(--warning);margin-top:0.25rem">📝 ${this.esc(p.observacao)}</div>` : ''}
+            ${p.entregador ? `<div style="font-size:0.6875rem;color:var(--gray-500);margin-top:0.125rem">🙋 ${p.entregador}</div>` : ''}
+          </div>
+          <div class="order-actions">
+            <button class="action-btn" onclick="app.imprimir(${p.id})" title="Imprimir">🖨️</button>
+            <button class="action-btn" onclick="app.mudarStatus(${p.id})" title="Status">🔄 Status</button>
+            <button class="action-btn ${p.pago ? 'success' : ''}" onclick="app.togglePago(${p.id})" title="Pagar">💲 Pagar</button>
+            <button class="action-btn primary" onclick="app.finalizar(${p.id})" title="Finalizar">✓ Finalizar</button>
+            <button class="action-btn" onclick="app.editarPedido(${p.id})" title="Editar">✏️</button>
           </div>
         </div>`;
     }).join('');
   },
 
-  escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+  calcularTempo(dataStr) {
+    const diff = Math.floor((Date.now() - new Date(dataStr).getTime()) / 60000);
+    if (diff < 1) return 'Agora';
+    if (diff < 60) return diff + ' min';
+    const h = Math.floor(diff / 60);
+    const m = diff % 60;
+    return h + 'h ' + (m > 0 ? m + 'min' : '');
   },
 
-  toggleVisibility(id) {
-    const list = this.currentTab === 'products' ? this.products : this.combos;
-    const item = list.find(x => x.id === id);
-    if (item) {
-      item.visible = !item.visible;
-      this.saveData();
-      this.render();
-      this.toast(item.visible ? 'Item visível no cardápio' : 'Item oculto do cardápio', 'info');
-    }
+  fmtPagamento(fp) {
+    const map = { dinheiro: 'Dinheiro', cartao_credito: 'Cartão Crédito', cartao_debito: 'Cartão Débito', pix: 'PIX', voucher: 'Voucher' };
+    return map[fp] || fp;
   },
 
-  toggleDropdown(btn, id) {
-    document.querySelectorAll('.dropdown-menu').forEach(d => {
-      if (d.id !== 'dropdown-' + id) d.classList.remove('show');
-    });
-    const dd = document.getElementById('dropdown-' + id);
-    dd.classList.toggle('show');
+  esc(text) {
+    const div = document.createElement('div'); div.textContent = text; return div.innerHTML;
   },
 
-  openModal(id = null) {
-    this.editingId = id;
-    const isCombo = this.currentTab === 'combos';
-    const isEdit = id !== null;
+  // ============================================================
+  // NOVO PEDIDO / EDITAR PEDIDO
+  // ============================================================
 
-    if (isCombo) {
-      document.getElementById('modalTitle').textContent = isEdit ? 'Editar Combo' : 'Novo Combo';
-      this.comboSelectedProducts = [];
-      if (isEdit) {
-        const combo = this.combos.find(c => c.id === id);
-        if (combo) this.comboSelectedProducts = [...(combo.productIds || [])];
-      }
-    } else {
-      document.getElementById('modalTitle').textContent = isEdit ? 'Editar Produto' : 'Novo Produto';
-    }
-
-    document.getElementById('modalBody').innerHTML = this.buildForm(isCombo, isEdit);
+  openNovoPedido() {
+    this.editingId = null;
+    this.cart = [];
+    document.getElementById('modalTitle').textContent = 'Novo Pedido';
+    document.getElementById('modalBody').innerHTML = this.buildPedidoForm();
     document.getElementById('modalOverlay').classList.add('show');
     document.body.style.overflow = 'hidden';
-
-    if (isCombo) this.renderComboSelector();
+    this.renderItemSelector('produtos');
+    this.toggleNovoCliente(false);
   },
 
-  buildForm(isCombo, isEdit) {
-    let item = null;
-    if (isEdit) {
-      item = isCombo
-        ? this.combos.find(c => c.id === this.editingId)
-        : this.products.find(p => p.id === this.editingId);
+  async editarPedido(id) {
+    const pedido = this.pedidos.find(p => p.id === id);
+    if (!pedido) return;
+    this.editingId = id;
+
+    // Carrega os itens do pedido no carrinho
+    let itens = [];
+    try {
+      itens = await dbCarregarItensPedido(id);
+    } catch(e) {
+      // Fallback para dados locais
+      itens = (this.itensPedido || []).filter(i => i.pedido_id === id).map(itemPedidoFromDb);
     }
 
-    const imgPreview = item?.image || '';
-    const imgClass = imgPreview ? 'has-image' : '';
+    // Converte itens do pedido para formato do carrinho
+    this.cart = itens.map(item => {
+      const nome = item.tipo_item === 'produto'
+        ? (this.produtos.find(p => p.id === item.produto_id)?.nome || 'Produto')
+        : (this.combos.find(c => c.id === item.combo_id)?.nome || 'Combo');
+      return {
+        id: item.tipo_item === 'produto' ? item.produto_id : item.combo_id,
+        tipo_item: item.tipo_item,
+        nome: nome,
+        preco_unitario: item.preco_unitario,
+        quantidade: item.quantidade,
+        subtotal: item.subtotal,
+        item_id_original: item.id  // guarda o ID original para sincronização
+      };
+    });
+
+    document.getElementById('modalTitle').textContent = 'Editar Pedido ' + pedido.numero_pedido;
+    document.getElementById('modalBody').innerHTML = this.buildPedidoForm(pedido);
+    document.getElementById('modalOverlay').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    this.renderItemSelector('produtos');
+    this.renderCart();
+    this.toggleNovoCliente(false);
+  },
+
+  buildPedidoForm(pedido = null) {
+    const clientesOpts = this.clientes.map(c => `<option value="${c.id}" ${pedido && pedido.cliente_id === c.id ? 'selected' : ''}>${c.nome} — ${c.telefone}</option>`).join('');
+    const enderecosOpts = this.enderecos.map(e => `<option value="${e.id}" ${pedido && pedido.endereco_id === e.id ? 'selected' : ''}>${e.rua}, ${e.numero} — ${e.bairro}</option>`).join('');
 
     return `
-      <div class="form-group">
-        <div class="image-upload ${imgClass}" id="imgUpload" onclick="document.getElementById('imgInput').click()">
-          ${imgPreview ? `<img src="${imgPreview}" id="imgPreview">` : ''}
-          <div class="image-upload-overlay">Alterar imagem</div>
-          <div class="image-upload-icon" id="imgIcon" style="${imgPreview ? 'display:none' : ''}">📷</div>
-          <div class="image-upload-text" id="imgText" style="${imgPreview ? 'display:none' : ''}">Clique para adicionar imagem</div>
-          <div class="image-upload-hint" id="imgHint" style="${imgPreview ? 'display:none' : ''}">URL da imagem ou deixe em branco</div>
+      <!-- CLIENTE EXISTENTE -->
+      <div id="cliente-existente-section">
+        <div class="form-row">
+          <div class="form-group" style="flex:2">
+            <label class="form-label">Cliente <span class="req">*</span></label>
+            <select class="form-select" id="ped-cliente" onchange="app.onClienteChange()">
+              <option value="">Selecione um cliente...</option>
+              ${clientesOpts}
+            </select>
+          </div>
+          <div class="form-group" style="display:flex;align-items:flex-end">
+            <button type="button" class="btn btn-secondary" style="width:100%" onclick="app.toggleNovoCliente(true)">
+              ➕ Novo Cliente
+            </button>
+          </div>
         </div>
-        <input type="text" class="form-input" id="imgInput" placeholder="https://..." value="${imgPreview}" oninput="app.updateImagePreview(this.value)" style="margin-top:0.5rem;">
       </div>
 
-      <div class="form-group">
-        <label class="form-label">Nome <span class="required">*</span></label>
-        <input type="text" class="form-input" id="fieldName" placeholder="Ex: X-tudo" value="${item ? this.escapeHtml(item.name) : ''}">
-        <div class="form-error" id="errName">Informe o nome.</div>
+      <!-- CADASTRO RÁPIDO DE CLIENTE -->
+      <div id="cliente-novo-section" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <span style="font-size:0.875rem;font-weight:700;color:var(--gray-800)">📝 Cadastrar novo cliente</span>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="app.toggleNovoCliente(false)">← Voltar</button>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Nome <span class="req">*</span></label>
+            <input type="text" class="form-input" id="novo-cliente-nome" placeholder="Nome completo">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Telefone <span class="req">*</span></label>
+            <input type="text" class="form-input" id="novo-cliente-telefone" placeholder="(99)99999-9999" maxlength="15">
+          </div>
+        </div>
+        <div style="font-size:0.75rem;font-weight:600;color:var(--gray-700);margin:0.5rem 0 0.375rem">📍 Endereço</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Rua</label>
+            <input type="text" class="form-input" id="novo-endereco-rua" placeholder="Rua / Avenida">
+          </div>
+          <div class="form-group" style="max-width:100px">
+            <label class="form-label">Nº</label>
+            <input type="text" class="form-input" id="novo-endereco-numero" placeholder="123">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Bairro</label>
+            <input type="text" class="form-input" id="novo-endereco-bairro" placeholder="Bairro">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cidade</label>
+            <input type="text" class="form-input" id="novo-endereco-cidade" placeholder="Cidade">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Estado</label>
+            <input type="text" class="form-input" id="novo-endereco-estado" placeholder="Estado">
+          </div>
+          <div class="form-group">
+            <label class="form-label">País</label>
+            <input type="text" class="form-input" id="novo-endereco-pais" value="Brasil">
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary" style="width:100%;margin-top:0.5rem" onclick="app.salvarNovoCliente()">
+          💾 Salvar Cliente
+        </button>
       </div>
 
-      <div class="form-group">
-        <label class="form-label">Descrição</label>
-        <textarea class="form-textarea" id="fieldDesc" placeholder="Ingredientes, detalhes...">${item ? this.escapeHtml(item.desc || '') : ''}</textarea>
-      </div>
-
+      <!-- ENDEREÇO DO PEDIDO -->
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Preço (R$) <span class="required">*</span></label>
-          <input type="number" class="form-input" id="fieldPrice" placeholder="0,00" step="0.01" min="0" value="${item ? item.price : ''}">
-          <div class="form-error" id="errPrice">Informe um preço válido.</div>
+          <label class="form-label">Endereço de entrega</label>
+          <select class="form-select" id="ped-endereco">
+            <option value="">No local / Retirada</option>
+            ${enderecosOpts}
+          </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Status</label>
-          <select class="form-select" id="fieldVisible">
-            <option value="true" ${!item || item.visible ? 'selected' : ''}>✅ Disponível</option>
-            <option value="false" ${item && !item.visible ? 'selected' : ''}>🚫 Oculto</option>
+          <label class="form-label">Tipo <span class="req">*</span></label>
+          <select class="form-select" id="ped-tipo">
+            <option value="delivery" ${!pedido || pedido.tipo === 'delivery' ? 'selected' : ''}>🛵 Delivery</option>
+            <option value="mesa" ${pedido && pedido.tipo === 'mesa' ? 'selected' : ''}>🪑 Mesa</option>
+            <option value="balcao" ${pedido && pedido.tipo === 'balcao' ? 'selected' : ''}>🏪 Balcão</option>
+            <option value="retirada" ${pedido && pedido.tipo === 'retirada' ? 'selected' : ''}>📦 Retirada</option>
           </select>
         </div>
       </div>
-
-      ${isCombo ? `
-      <div class="combo-section">
-        <div class="combo-section-title">🛒 Produtos do Combo</div>
-        <div class="form-hint" style="margin-bottom:0.5rem;">Selecione os produtos que compõem este combo:</div>
-        <div class="combo-products-grid" id="comboGrid"></div>
-        <div class="combo-selected-list" id="comboSelectedList"></div>
-        <div class="combo-summary">
-          <div class="combo-summary-label">Total dos produtos selecionados:</div>
-          <div class="combo-summary-value" id="comboTotal">R$ 0,00</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Forma de Pagamento</label>
+          <select class="form-select" id="ped-pagamento">
+            <option value="">Selecione...</option>
+            <option value="dinheiro" ${pedido && pedido.forma_pagamento === 'dinheiro' ? 'selected' : ''}>Dinheiro</option>
+            <option value="cartao_credito" ${pedido && pedido.forma_pagamento === 'cartao_credito' ? 'selected' : ''}>Cartão Crédito</option>
+            <option value="cartao_debito" ${pedido && pedido.forma_pagamento === 'cartao_debito' ? 'selected' : ''}>Cartão Débito</option>
+            <option value="pix" ${pedido && pedido.forma_pagamento === 'pix' ? 'selected' : ''}>PIX</option>
+            <option value="voucher" ${pedido && pedido.forma_pagamento === 'voucher' ? 'selected' : ''}>Voucher</option>
+          </select>
         </div>
-        <div class="form-error" id="errCombo">Selecione pelo menos um produto para o combo.</div>
+        <div class="form-group">
+          <label class="form-label">Observação</label>
+          <input type="text" class="form-input" id="ped-obs" placeholder="Ex: Sem cebola, troco para..." value="${pedido ? pedido.observacao || '' : ''}">
+        </div>
       </div>
-      ` : ''}
+
+      <!-- SELETOR DE ITENS -->
+      <div class="item-selector">
+        <div class="item-selector-title">🛒 Adicionar itens ao pedido</div>
+        <div class="item-tabs">
+          <button class="item-tab active" onclick="app.renderItemSelector('produtos')" id="tab-produtos">Produtos</button>
+          <button class="item-tab" onclick="app.renderItemSelector('combos')" id="tab-combos">Combos</button>
+        </div>
+        <div class="item-grid" id="itemGrid"></div>
+      </div>
+
+      <!-- CARRINHO -->
+      <div class="cart-list" id="cartList"></div>
+      <div class="cart-total-bar">
+        <div class="cart-total-label">Total do pedido:</div>
+        <div class="cart-total-value" id="cartTotal">R$ 0,00</div>
+      </div>
     `;
   },
 
-  updateImagePreview(url) {
-    const upload = document.getElementById('imgUpload');
-    const preview = document.getElementById('imgPreview');
-    const icon = document.getElementById('imgIcon');
-    const text = document.getElementById('imgText');
-    const hint = document.getElementById('imgHint');
+  toggleNovoCliente(mostrar) {
+    const secNovo = document.getElementById('cliente-novo-section');
+    const secExistente = document.getElementById('cliente-existente-section');
+    if (secNovo) secNovo.style.display = mostrar ? 'block' : 'none';
+    if (secExistente) secExistente.style.display = mostrar ? 'none' : 'block';
+  },
 
-    if (url.trim()) {
-      if (preview) preview.src = url;
-      else {
-        const img = document.createElement('img');
-        img.src = url;
-        img.id = 'imgPreview';
-        upload.insertBefore(img, upload.firstChild);
-      }
-      upload.classList.add('has-image');
-      if (icon) icon.style.display = 'none';
-      if (text) text.style.display = 'none';
-      if (hint) hint.style.display = 'none';
-    } else {
-      const existing = document.getElementById('imgPreview');
-      if (existing) existing.remove();
-      upload.classList.remove('has-image');
-      if (icon) icon.style.display = '';
-      if (text) text.style.display = '';
-      if (hint) hint.style.display = '';
+  onClienteChange() {
+    const clienteId = parseInt(document.getElementById('ped-cliente').value);
+    if (!clienteId) return;
+    const cliente = this.clientes.find(c => c.id === clienteId);
+    if (cliente && cliente.endereco_id) {
+      document.getElementById('ped-endereco').value = cliente.endereco_id;
     }
   },
 
-  renderComboSelector() {
-    const grid = document.getElementById('comboGrid');
-    const list = document.getElementById('comboSelectedList');
-    if (!grid) return;
+  async salvarNovoCliente() {
+    const nome = document.getElementById('novo-cliente-nome').value.trim();
+    const telefone = document.getElementById('novo-cliente-telefone').value.trim();
+    const rua = document.getElementById('novo-endereco-rua').value.trim();
+    const numero = document.getElementById('novo-endereco-numero').value.trim();
+    const bairro = document.getElementById('novo-endereco-bairro').value.trim();
+    const cidade = document.getElementById('novo-endereco-cidade').value.trim();
+    const estado = document.getElementById('novo-endereco-estado').value.trim();
+    const pais = document.getElementById('novo-endereco-pais').value.trim() || 'Brasil';
 
-    grid.innerHTML = this.products.map(p => {
-      const selected = this.comboSelectedProducts.includes(p.id);
+    // Validação do telefone
+    const telefoneRegex = /^\(\d{2}\)\d{4,5}-\d{4}$/;
+    if (!nome) { this.toast('Informe o nome do cliente.', 'error'); return; }
+    if (!telefone) { this.toast('Informe o telefone do cliente.', 'error'); return; }
+    if (!telefoneRegex.test(telefone)) { this.toast('Telefone inválido. Use o formato (99)99999-9999', 'error'); return; }
+
+    // Verifica se já existe cliente com mesmo telefone
+    const existente = this.clientes.find(c => c.telefone === telefone);
+    if (existente) { this.toast('Já existe um cliente com este telefone.', 'error'); return; }
+
+    // Cria endereço
+    let enderecoId = null;
+    if (rua) {
+      const novoEnderecoId = this.enderecos.length > 0 ? Math.max(...this.enderecos.map(e => e.id)) + 1 : 1;
+      const novoEndereco = {
+        id: novoEnderecoId, pais, estado, cidade, bairro, rua, numero,
+        created_at: new Date().toISOString(), updated_at: new Date().toISOString()
+      };
+      this.enderecos.push(novoEndereco);
+      try { await dbSalvarEndereco(novoEndereco); } catch(e) { console.warn(e); }
+      enderecoId = novoEnderecoId;
+    }
+
+    // Cria cliente
+    const novoClienteId = this.clientes.length > 0 ? Math.max(...this.clientes.map(c => c.id)) + 1 : 1;
+    const novoCliente = {
+      id: novoClienteId, nome, telefone,
+      endereco_id: enderecoId,
+      data_cadastro: new Date().toISOString().slice(0,10),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    this.clientes.push(novoCliente);
+    try { await dbSalvarCliente(novoCliente); } catch(e) { console.warn(e); }
+
+    // Volta para seleção e preenche o novo cliente
+    this.toggleNovoCliente(false);
+
+    // Atualiza o select de clientes
+    const selectCliente = document.getElementById('ped-cliente');
+    const option = document.createElement('option');
+    option.value = novoClienteId;
+    option.textContent = `${nome} — ${telefone}`;
+    selectCliente.appendChild(option);
+    selectCliente.value = novoClienteId;
+
+    // Preenche endereço se houver
+    if (enderecoId) {
+      const selectEndereco = document.getElementById('ped-endereco');
+      const optEnd = document.createElement('option');
+      optEnd.value = enderecoId;
+      optEnd.textContent = `${rua}, ${numero} — ${bairro}`;
+      selectEndereco.appendChild(optEnd);
+      selectEndereco.value = enderecoId;
+    }
+
+    this.toast(`Cliente "${nome}" cadastrado com sucesso!`);
+  },
+
+  renderItemSelector(tipo) {
+    document.querySelectorAll('.item-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + tipo).classList.add('active');
+    const grid = document.getElementById('itemGrid');
+    const list = tipo === 'produtos' ? this.produtos.filter(p => p.visivel) : this.combos.filter(c => c.visivel);
+
+    grid.innerHTML = list.map(item => {
+      const isProd = tipo === 'produtos';
       return `
-        <div class="combo-product-card ${selected ? 'selected' : ''}" onclick="app.toggleComboProduct(${p.id})">
-          ${p.image ? `<img src="${p.image}" class="cp-img" onerror="this.style.display='none'">` : `<div class="cp-img" style="display:flex;align-items:center;justify-content:center;background:var(--gray-100);font-size:1.25rem;">🍔</div>`}
-          <div class="cp-name">${this.escapeHtml(p.name)}</div>
-          <div class="cp-price">R$ ${p.price.toFixed(2).replace('.', ',')}</div>
+        <div class="item-card" onclick="app.addToCart(${item.id}, '${isProd ? 'produto' : 'combo'}')">
+          <div class="ic-name">${this.esc(item.nome)}</div>
+          <div class="ic-price">R$ ${item.preco.toFixed(2).replace('.', ',')}</div>
         </div>`;
     }).join('');
-
-    const selected = this.products.filter(p => this.comboSelectedProducts.includes(p.id));
-    list.innerHTML = selected.map(p => `
-      <div class="combo-selected-item">
-        <span class="csi-name">${this.escapeHtml(p.name)}</span>
-        <span class="csi-price">R$ ${p.price.toFixed(2).replace('.', ',')}</span>
-        <button class="csi-remove" onclick="app.toggleComboProduct(${p.id})">&times;</button>
-      </div>
-    `).join('');
-
-    const total = selected.reduce((sum, p) => sum + p.price, 0);
-    document.getElementById('comboTotal').textContent = 'R$ ' + total.toFixed(2).replace('.', ',');
   },
 
-  toggleComboProduct(id) {
-    if (this.comboSelectedProducts.includes(id)) {
-      this.comboSelectedProducts = this.comboSelectedProducts.filter(x => x !== id);
+  addToCart(id, tipo) {
+    const item = tipo === 'produto' ? this.produtos.find(p => p.id === id) : this.combos.find(c => c.id === id);
+    if (!item) return;
+    const existing = this.cart.find(c => c.id === id && c.tipo === tipo);
+    if (existing) {
+      existing.quantidade++;
+      existing.subtotal = existing.quantidade * existing.preco_unitario;
     } else {
-      this.comboSelectedProducts.push(id);
+      this.cart.push({ id: item.id, tipo_item: tipo, nome: item.nome, preco_unitario: item.preco, quantidade: 1, subtotal: item.preco });
     }
-    this.renderComboSelector();
+    this.renderCart();
+  },
+
+  removeFromCart(index) {
+    this.cart.splice(index, 1);
+    this.renderCart();
+  },
+
+  changeQty(index, delta) {
+    const item = this.cart[index];
+    item.quantidade += delta;
+    if (item.quantidade <= 0) { this.removeFromCart(index); return; }
+    item.subtotal = item.quantidade * item.preco_unitario;
+    this.renderCart();
+  },
+
+  renderCart() {
+    const list = document.getElementById('cartList');
+    const total = this.cart.reduce((s, i) => s + i.subtotal, 0);
+
+    if (this.cart.length === 0) {
+      list.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--gray-400);font-size:0.8125rem">Nenhum item adicionado. Clique nos produtos acima.</div>';
+    } else {
+      list.innerHTML = this.cart.map((item, idx) => `
+        <div class="cart-item">
+          <span class="cart-item-name">${item.tipo_item === 'combo' ? '🎁' : '🍔'} ${this.esc(item.nome)}</span>
+          <span class="cart-item-price">R$ ${item.subtotal.toFixed(2).replace('.', ',')}</span>
+          <div class="cart-qty">
+            <button onclick="app.changeQty(${idx}, -1)">−</button>
+            <span>${item.quantidade}</span>
+            <button onclick="app.changeQty(${idx}, 1)">+</button>
+          </div>
+          <button class="cart-remove" onclick="app.removeFromCart(${idx})">&times;</button>
+        </div>
+      `).join('');
+    }
+    document.getElementById('cartTotal').textContent = 'R$ ' + total.toFixed(2).replace('.', ',');
+  },
+
+  async salvarPedido() {
+    const clienteId = parseInt(document.getElementById('ped-cliente').value);
+    const enderecoId = document.getElementById('ped-endereco').value;
+    const tipo = document.getElementById('ped-tipo').value;
+    const pagamento = document.getElementById('ped-pagamento').value;
+    const obs = document.getElementById('ped-obs').value.trim();
+
+    if (!clienteId) { this.toast('Selecione um cliente ou cadastre um novo.', 'error'); return; }
+    if (this.cart.length === 0) { this.toast('Adicione pelo menos um item ao pedido.', 'error'); return; }
+
+    const total = this.cart.reduce((s, i) => s + i.subtotal, 0);
+
+    if (this.editingId) {
+      // EDIÇÃO: atualiza pedido existente
+      const p = this.pedidos.find(x => x.id === this.editingId);
+      if (p) {
+        p.cliente_id = clienteId;
+        p.endereco_id = enderecoId ? parseInt(enderecoId) : null;
+        p.tipo = tipo;
+        p.forma_pagamento = pagamento;
+        p.observacao = obs;
+        p.total = total;
+        p.updated_at = new Date().toISOString();
+        try { await dbSalvarPedido(p); } catch(e) { console.warn(e); }
+
+        // Remove itens antigos e salva novos
+        const itensAntigos = (this.itensPedido || []).filter(i => i.pedido_id === this.editingId);
+        for (const ia of itensAntigos) {
+          try { await dbExcluirItemPedido(ia.id); } catch(e) {}
+        }
+        this.itensPedido = (this.itensPedido || []).filter(i => i.pedido_id !== this.editingId);
+
+        for (const item of this.cart) {
+          const novoItem = {
+            id: Date.now() + Math.random(),
+            pedido_id: this.editingId,
+            tipo_item: item.tipo_item,
+            produto_id: item.tipo_item === 'produto' ? item.id : null,
+            combo_id: item.tipo_item === 'combo' ? item.id : null,
+            quantidade: item.quantidade,
+            preco_unitario: item.preco_unitario,
+            subtotal: item.subtotal,
+            created_at: new Date().toISOString()
+          };
+          this.itensPedido.push(novoItem);
+          try { await dbSalvarItemPedido(novoItem); } catch(e) { console.warn(e); }
+        }
+      }
+      this.toast('Pedido atualizado com sucesso!');
+    } else {
+      // NOVO: cria pedido
+      const nextId = this.pedidos.length > 0 ? Math.max(...this.pedidos.map(p => p.id)) + 1 : 1;
+      const nextNum = '#' + nextId;
+      const novo = {
+        id: nextId, numero_pedido: nextNum,
+        cliente_id: clienteId,
+        endereco_id: enderecoId ? parseInt(enderecoId) : null,
+        tipo, status: 'pendente', total,
+        forma_pagamento: pagamento, pago: false,
+        observacao: obs, data_pedido: new Date().toISOString()
+      };
+      this.pedidos.push(novo);
+      try { await dbSalvarPedido(novo); } catch(e) { console.warn(e); }
+
+      for (const item of this.cart) {
+        const novoItem = {
+          id: Date.now() + Math.random(),
+          pedido_id: nextId,
+          tipo_item: item.tipo_item,
+          produto_id: item.tipo_item === 'produto' ? item.id : null,
+          combo_id: item.tipo_item === 'combo' ? item.id : null,
+          quantidade: item.quantidade,
+          preco_unitario: item.preco_unitario,
+          subtotal: item.subtotal,
+          created_at: new Date().toISOString()
+        };
+        if (!this.itensPedido) this.itensPedido = [];
+        this.itensPedido.push(novoItem);
+        try { await dbSalvarItemPedido(novoItem); } catch(e) { console.warn(e); }
+      }
+      this.toast('Pedido criado com sucesso!');
+    }
+
+    this.closeModal();
+    this.render();
   },
 
   closeModal(e) {
@@ -330,88 +632,44 @@ const app = {
     document.getElementById('modalOverlay').classList.remove('show');
     document.body.style.overflow = '';
     this.editingId = null;
-    this.comboSelectedProducts = [];
-    document.querySelectorAll('.dropdown-menu').forEach(d => d.classList.remove('show'));
+    this.cart = [];
   },
 
-  validate() {
-    let valid = true;
-    const name = document.getElementById('fieldName').value.trim();
-    const price = parseFloat(document.getElementById('fieldPrice').value);
-
-    document.querySelectorAll('.form-error').forEach(e => e.classList.remove('show'));
-
-    if (!name) { document.getElementById('errName').classList.add('show'); valid = false; }
-    if (isNaN(price) || price < 0) { document.getElementById('errPrice').classList.add('show'); valid = false; }
-
-    if (this.currentTab === 'combos' && this.comboSelectedProducts.length === 0) {
-      document.getElementById('errCombo').classList.add('show'); valid = false;
-    }
-
-    return valid;
-  },
-
-  save() {
-    if (!this.validate()) return;
-
-    const name = document.getElementById('fieldName').value.trim();
-    const desc = document.getElementById('fieldDesc').value.trim();
-    const price = parseFloat(document.getElementById('fieldPrice').value);
-    const visible = document.getElementById('fieldVisible').value === 'true';
-    const image = document.getElementById('imgInput').value.trim();
-
-    if (this.currentTab === 'products') {
-      if (this.editingId) {
-        const p = this.products.find(x => x.id === this.editingId);
-        if (p) { p.name = name; p.desc = desc; p.price = price; p.visible = visible; p.image = image; }
-        this.toast('Produto atualizado com sucesso!');
-      } else {
-        this.products.push({ id: this.getNextId(this.products), name, desc, price, visible, image });
-        this.toast('Produto cadastrado com sucesso!');
-      }
-    } else {
-      if (this.editingId) {
-        const c = this.combos.find(x => x.id === this.editingId);
-        if (c) { c.name = name; c.desc = desc; c.price = price; c.visible = visible; c.image = image; c.productIds = [...this.comboSelectedProducts]; }
-        this.toast('Combo atualizado com sucesso!');
-      } else {
-        this.combos.push({ id: this.getNextId(this.combos), name, desc, price, visible, image, productIds: [...this.comboSelectedProducts] });
-        this.toast('Combo cadastrado com sucesso!');
-      }
-    }
-
-    this.saveData();
-    this.closeModal();
+  async mudarStatus(id) {
+    const p = this.pedidos.find(x => x.id === id);
+    if (!p) return;
+    const statuses = ['pendente', 'em_preparacao', 'pronto', 'entregue'];
+    const idx = statuses.indexOf(p.status);
+    p.status = statuses[(idx + 1) % statuses.length];
+    try { await dbAtualizarStatusPedido(id, p.status); } catch(e) { console.warn(e); }
     this.render();
+    this.toast('Status atualizado: ' + p.status.replace('_', ' '));
   },
 
-  edit(id) {
-    document.querySelectorAll('.dropdown-menu').forEach(d => d.classList.remove('show'));
-    this.openModal(id);
-  },
-
-  delete(id) {
-    document.querySelectorAll('.dropdown-menu').forEach(d => d.classList.remove('show'));
-    const isCombo = this.currentTab === 'combos';
-    const name = isCombo
-      ? this.combos.find(c => c.id === id)?.name
-      : this.products.find(p => p.id === id)?.name;
-
-    if (!confirm(`Tem certeza que deseja excluir "${name}"?`)) return;
-
-    if (isCombo) {
-      this.combos = this.combos.filter(c => c.id !== id);
-    } else {
-      // Remove product from any combos that reference it
-      this.combos.forEach(c => {
-        if (c.productIds) c.productIds = c.productIds.filter(pid => pid !== id);
-      });
-      this.products = this.products.filter(p => p.id !== id);
-    }
-
-    this.saveData();
+  async togglePago(id) {
+    const p = this.pedidos.find(x => x.id === id);
+    if (!p) return;
+    p.pago = !p.pago;
+    try { await dbAtualizarPagamentoPedido(id, p.pago, p.forma_pagamento); } catch(e) { console.warn(e); }
     this.render();
-    this.toast(`${isCombo ? 'Combo' : 'Produto'} excluído com sucesso!`);
+    this.toast(p.pago ? 'Pedido marcado como pago' : 'Pagamento cancelado');
+  },
+
+  async finalizar(id) {
+    const p = this.pedidos.find(x => x.id === id);
+    if (!p) return;
+    p.status = 'entregue';
+    p.pago = true;
+    try {
+      await dbAtualizarStatusPedido(id, 'entregue');
+      await dbAtualizarPagamentoPedido(id, true, p.forma_pagamento);
+    } catch(e) { console.warn(e); }
+    this.render();
+    this.toast('Pedido finalizado!');
+  },
+
+  imprimir(id) {
+    this.toast('Enviando para impressora...', 'info');
   },
 
   toast(message, type = 'success') {
@@ -419,55 +677,39 @@ const app = {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     const icon = type === 'error' ? '❌' : type === 'info' ? 'ℹ️' : '✅';
-    toast.innerHTML = `<span>${icon}</span> ${this.escapeHtml(message)}`;
+    toast.innerHTML = `<span>${icon}</span> ${this.esc(message)}`;
     container.appendChild(toast);
-    setTimeout(() => { toast.remove(); }, 3000);
+    setTimeout(() => toast.remove(), 3000);
   },
 
   exportData() {
-    const data = { products: this.products, combos: this.combos, exportedAt: new Date().toISOString() };
+    const data = { pedidos: this.pedidos, produtos: this.produtos, combos: this.combos, clientes: this.clientes, enderecos: this.enderecos, exportedAt: new Date().toISOString() };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = `cardapio-backup-${new Date().toISOString().slice(0,10)}.json`;
-    a.click();
+    a.href = url; a.download = `pdv-pedidos-${new Date().toISOString().slice(0,10)}.json`; a.click();
     URL.revokeObjectURL(url);
-    this.toast('Dados exportados com sucesso!');
+    this.toast('Dados exportados!');
   },
 
   importData(input) {
-    const file = input.files[0];
-    if (!file) return;
+    const file = input.files[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const data = JSON.parse(e.target.result);
-        if (data.products) this.products = data.products;
+        if (data.pedidos) this.pedidos = data.pedidos;
+        if (data.produtos) this.produtos = data.produtos;
         if (data.combos) this.combos = data.combos;
-        this.saveData();
+        if (data.clientes) this.clientes = data.clientes;
+        if (data.enderecos) this.enderecos = data.enderecos;
         this.render();
-        this.toast('Dados importados com sucesso!');
-      } catch (err) {
-        this.toast('Erro ao importar arquivo. Verifique o formato.', 'error');
-      }
+        this.toast('Dados importados!');
+      } catch (err) { this.toast('Erro ao importar.', 'error'); }
     };
-    reader.readAsText(file);
-    input.value = '';
+    reader.readAsText(file); input.value = '';
   }
 };
 
-// Close dropdowns on outside click
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.menu-btn') && !e.target.closest('.dropdown-menu')) {
-    document.querySelectorAll('.dropdown-menu').forEach(d => d.classList.remove('show'));
-  }
-});
-
-// Close modal on Escape
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') app.closeModal();
-});
-
-// Initialize
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') app.closeModal(); });
 document.addEventListener('DOMContentLoaded', () => app.init());
